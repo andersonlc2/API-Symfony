@@ -30,11 +30,15 @@ class CourseController extends AbstractController
     }
 
     /**
-     * @Route("/{courseID}", name="show", methods={"GET"})
+     * @Route("/{courseId}", name="show", methods={"GET"})
      */
     public function show(int $courseId)
     {
+        $course = $this->getDoctrine()->getRepository(Course::class)->find($courseId);
 
+        return $this->json([
+            'data' => $course
+        ]);
     }
 
     /**
