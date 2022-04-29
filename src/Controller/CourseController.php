@@ -2,102 +2,100 @@
 
 namespace App\Controller;
 
-use Doctrine\Persistence\ManagerRegistry;
+use App\BusinessObject\CourseBO;
+use http\Exception\InvalidArgumentException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\HttpFoundation\Exception\BadRequestException;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\EntityManagerInterface;
-use App\Entity\Course;
-use DateTime;
-use DateTimeZone;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\Routing\Annotation\Route;
+
+
 
 /**
  * @Route("/courses", name="course_")
  */
 class CourseController extends AbstractController
 {
+    private CourseBO $courseBO;
+
+    public function __construct(EntityManagerInterface $entityManager)
+    {
+        $this->courseBO = new CourseBO($entityManager);
+    }
 
     /**
      * @Route("/", name="index", methods={"GET"})
      */
-    public function index(EntityManagerInterface $entityManager) : Response
+    public function index() : Response
     {
-        $courses = $entityManager->getRepository(Course::class)->findAll();
-
-        return $this->json([
-            'data' => $courses
-        ]);
+        $courses = $this->courseBO->findAllCourses();
+        if (count($courses) == 0) {
+            throw new NotFoundHttpException('Nenhum curso não encontrado');
+        }
+        return $this->json(['data' => $courses]);
     }
 
     /**
      * @Route("/{courseId}", name="show", methods={"GET"})
      */
-    public function show(int $courseId, EntityManagerInterface $entityManager) : Response
+    public function show($courseId) : Response
     {
-        $course = $entityManager->getRepository(Course::class)->find($courseId);
+        if (is_numeric($courseId)) {
+            $course = $this->courseBO->findById($courseId);
+            if ($course == null) {
+                throw new NotFoundHttpException('Curso não encontrado');
+            }
 
-        return $this->json([
-            'data' => $course
-        ]);
+            return $this->json(['data' => $course]);
+        } else {
+            throw new BadRequestException('$course deve ser um INTEIRO');
+        }
+
     }
 
     /**
      * @Route("/", name="create", methods={"POST"})
      */   
-    public function create(Request $request, EntityManagerInterface $entityManager) : Response
+    public function create(Request $request) : Response
     {
         $data = $request->request->all();
-
-        $course = new Course();
-        $course->setName($data['name']);
-        $course->setDescription($data['description']);
-        $course->setSlug($data['slug']);
-
-        $entityManager->persist($course);
-        $entityManager->flush();
-
+        $this->courseBO->save($data);
         return $this->json([
             'data' => 'Curso criado com sucesso!'
         ]);
-
     }
 
     /**
      * @Route("/{courseId}", name="update", methods={"PUT", "PATCH"})
      */
-    public function update(int $courseId, Request $request, EntityManagerInterface $entityManager) : Response
+    public function update($courseId, Request $request) : Response
     {
-        $data = $request->request->all();
+        if (is_numeric($courseId)) {
+            $data = $request->request->all();
+            $this->courseBO->save($data, $courseId);
 
-        $course = $entityManager->getRepository(Course::class)->find($courseId);
-        if (isset($data['name'])) $course->setName($data['name']);
-        if (isset($data['description'])) $course->setDescription($data['description']);
-        if (isset($data['slug'])) $course->setSlug($data['slug']);
+            return $this->json(['data' => 'Curso atualizado com sucesso!']);
+        } else {
+            throw new BadRequestException('$course deve ser um INTEIRO');
+        }
 
-        $entityManager->persist($course);
-        $entityManager->flush();
-
-        return $this->json([
-            'data' => 'Curso atualizado com sucesso!'
-        ]);
     }
 
     /**
      * @Route("/{courseId}", name="delete", methods={"DELETE"})
      */
-    public function delete(int $courseId, EntityManagerInterface $entityManager) : Response
+    public function delete($courseId) : Response
     {
-        $course = $entityManager->getRepository(Course::class)->find($courseId);
+        if (is_numeric($courseId)) {
 
-        $entityManager->remove($course);
-        $entityManager->flush();
-
-
-        return $this->json([
-            'data' => 'Curso removido com sucesso!'
-        ]);
+            $this->courseBO->remove($courseId);
+            return $this->json(['data' => 'Curso removido com sucesso!']);
+        } else {
+            throw new BadRequestException('$course deve ser um INTEIRO');
+        }
     }
 
 }
