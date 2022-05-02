@@ -19,83 +19,90 @@ use Symfony\Component\Routing\Annotation\Route;
  */
 class CourseController extends AbstractController
 {
-    private CourseBO $courseBO;
+	private CourseBO $courseBO;
 
-    public function __construct(EntityManagerInterface $entityManager)
-    {
-        $this->courseBO = new CourseBO($entityManager);
-    }
+	public function __construct(EntityManagerInterface $entityManager)
+	{
+		$this->courseBO = new CourseBO($entityManager);
+	}
 
-    /**
-     * @Route("/", name="index", methods={"GET"})
-     */
-    public function index() : Response
-    {
-        $courses = $this->courseBO->findAllCourses();
-        if (count($courses) == 0) {
-            throw new NotFoundHttpException('Nenhum curso não encontrado');
-        }
-        return $this->json(['data' => $courses]);
-    }
+	/**
+	 * @Route("/", name="index", methods={"GET"})
+	 */
+	public function index(): Response
+	{
+		$courses = $this->courseBO->findAllCourses();
+		if (count($courses) == 0) {
+			throw new NotFoundHttpException('Nenhum curso não encontrado');
+		}
+		return $this->json(['data' => $courses]);
+	}
 
-    /**
-     * @Route("/{courseId}", name="show", methods={"GET"})
-     */
-    public function show($courseId) : Response
-    {
-        if (is_numeric($courseId)) {
-            $course = $this->courseBO->findById($courseId);
-            if ($course == null) {
-                throw new NotFoundHttpException('Curso não encontrado');
-            }
+	/**
+	 * @Route("/{courseId}", name="show", methods={"GET"})
+	 */
+	public function show($courseId): Response
+	{
+		if (is_numeric($courseId)) {
+			$course = $this->courseBO->findById($courseId);
+			if ($course == null) {
+				throw new NotFoundHttpException('Curso não encontrado');
+			}
 
-            return $this->json(['data' => $course]);
-        } else {
-            throw new BadRequestException('$course deve ser um INTEIRO');
-        }
+			return $this->json(['data' => $course]);
+		} else {
+			throw new BadRequestException('$course deve ser um INTEIRO');
+		}
+	}
 
-    }
+	/**
+	 * @Route("/", name="create", methods={"POST"})
+	 */
+	public function create(Request $request): Response
+	{
+		$data = $request->request->all();
+		$this->courseBO->save($data);
+		return $this->json([
+			'data' => 'Curso criado com sucesso!'
+		]);
+	}
 
-    /**
-     * @Route("/", name="create", methods={"POST"})
-     */   
-    public function create(Request $request) : Response
-    {
-        $data = $request->request->all();
-        $this->courseBO->save($data);
-        return $this->json([
-            'data' => 'Curso criado com sucesso!'
-        ]);
-    }
+	/**
+	 * @Route("/{courseId}", name="update", methods={"PUT", "PATCH"})
+	 */
+	public function update($courseId, Request $request): Response
+	{
+		if (is_numeric($courseId)) {
+			$data = $request->request->all();
+			$this->courseBO->save($data, $courseId);
 
-    /**
-     * @Route("/{courseId}", name="update", methods={"PUT", "PATCH"})
-     */
-    public function update($courseId, Request $request) : Response
-    {
-        if (is_numeric($courseId)) {
-            $data = $request->request->all();
-            $this->courseBO->save($data, $courseId);
+			return $this->json(['data' => 'Curso atualizado com sucesso!']);
+		} else {
+			throw new BadRequestException('$course deve ser um INTEIRO');
+		}
+	}
 
-            return $this->json(['data' => 'Curso atualizado com sucesso!']);
-        } else {
-            throw new BadRequestException('$course deve ser um INTEIRO');
-        }
+	/**
+	 * @Route("/{courseId}", name="delete", methods={"DELETE"})
+	 */
+	public function delete($courseId): Response
+	{
+		if (is_numeric($courseId)) {
 
-    }
+			$this->courseBO->remove($courseId);
+			return $this->json(['data' => 'Curso removido com sucesso!']);
+		} else {
+			throw new BadRequestException('$course deve ser um INTEIRO');
+		}
+	}
 
-    /**
-     * @Route("/{courseId}", name="delete", methods={"DELETE"})
-     */
-    public function delete($courseId) : Response
-    {
-        if (is_numeric($courseId)) {
+	/**
+	 * @Route("/name/{nome}", name="nome", methods={"GET"})
+	 */
+	public function findByName($nome)
+	{
+		$courses = $this->courseBO->findByName($nome);
 
-            $this->courseBO->remove($courseId);
-            return $this->json(['data' => 'Curso removido com sucesso!']);
-        } else {
-            throw new BadRequestException('$course deve ser um INTEIRO');
-        }
-    }
-
+		return $this->json(["data" => $courses]);
+	}
 }
